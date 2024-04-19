@@ -25,7 +25,7 @@ async function run() {
     await client.connect();
     console.log("Connected to MongoDB");
 
-    const db = client.db("basic-node-server");
+    const db = client.db("sunbeam-kids-garden");
     const collection = db.collection("users");
     const productsCollection = db.collection("products");
     const categoriesCollection = db.collection("categories");
@@ -89,13 +89,22 @@ async function run() {
     //get all products
     app.get("/api/v1/products", async (req, res) => {
       const result = await productsCollection.find().toArray();
-      res
-        .status(200)
-        .json({
-          success: true,
-          message: "all products retrieved successful",
-          data: result,
-        });
+      res.status(200).json({
+        success: true,
+        message: "all products retrieved successful",
+        data: result,
+      });
+    });
+
+    //get all categories
+    app.get("/api/v1/categories", async (req, res) => {
+      const result = await categoriesCollection.find().toArray();
+
+      res.status(200).json({
+        success: true,
+        message: "all categories retrieved successful",
+        data: result,
+      });
     });
 
     // ==============================================================
