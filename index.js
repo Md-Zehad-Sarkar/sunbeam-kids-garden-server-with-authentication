@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 
@@ -9,7 +9,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json());
 
 // MongoDB Connection URL
@@ -58,6 +58,7 @@ async function run() {
     // User Login
     app.post("/api/v1/login", async (req, res) => {
       const { email, password } = req.body;
+      console.log(email, password);
 
       // Find user by email
       const user = await collection.findOne({ email });
@@ -72,9 +73,13 @@ async function run() {
       }
 
       // Generate JWT token
-      const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET, {
-        expiresIn: process.env.EXPIRES_IN,
-      });
+      const token = jwt.sign(
+        { email: user.email, name: user.name },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: process.env.EXPIRES_IN,
+        }
+      );
 
       res.json({
         success: true,
@@ -94,6 +99,51 @@ async function run() {
         message: "all products retrieved successful",
         data: result,
       });
+    });
+
+    //delete products
+    app.delete("/api/v1/products/:id", async (req, res) => {
+      const id = req.params.id;
+      try {
+        const result = await productsCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        if (result.deletedCount > 0) {
+          res.status(200).json({
+            success: true,
+            message: "Product deleted successfully",
+          });
+        } else {
+          res.status(404).json({
+            success: false,
+            message: "Product not found",
+          });
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    });
+    //edit products
+    app.delete("/api/v1/products/:id", async (req, res) => {
+      const id = req.params.id;
+      try {
+        const result = await productsCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        if (result.deletedCount > 0) {
+          res.status(200).json({
+            success: true,
+            message: "Product deleted successfully",
+          });
+        } else {
+          res.status(404).json({
+            success: false,
+            message: "Product not found",
+          });
+        }
+      } catch (error) {
+        console.error(error);
+      }
     });
 
     //get all categories
