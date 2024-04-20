@@ -32,7 +32,7 @@ async function run() {
 
     // User Registration
     app.post("/api/v1/register", async (req, res) => {
-      const { name, email, password } = req.body;
+      const { name, email, password, role, image } = req.body;
 
       // Check if email already exists
       const existingUser = await collection.findOne({ email });
@@ -47,7 +47,44 @@ async function run() {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Insert user into the database
-      await collection.insertOne({ name, email, password: hashedPassword });
+      await collection.insertOne({
+        name,
+        email,
+        role,
+        password: hashedPassword,
+        image,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "User registered successfully",
+      });
+    });
+
+    //create admin api
+    app.post("/api/v1/admin-register", async (req, res) => {
+      const { name, email, password, role, image } = req.body;
+
+      // Check if email already exists
+      const existingUser = await collection.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "User already exists",
+        });
+      }
+
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Insert user into the database
+      await collection.insertOne({
+        name,
+        email,
+        role,
+        password: hashedPassword,
+        image,
+      });
 
       res.status(201).json({
         success: true,
@@ -58,7 +95,6 @@ async function run() {
     // User Login
     app.post("/api/v1/login", async (req, res) => {
       const { email, password } = req.body;
-      console.log(email, password);
 
       // Find user by email
       const user = await collection.findOne({ email });
@@ -74,7 +110,12 @@ async function run() {
 
       // Generate JWT token
       const token = jwt.sign(
-        { email: user.email, name: user.name },
+        {
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          image: user.image,
+        },
         process.env.JWT_SECRET,
         {
           expiresIn: process.env.EXPIRES_IN,
@@ -91,9 +132,40 @@ async function run() {
     // ==============================================================
     // WRITE YOUR CODE HERE
 
+    //add products
+    app.post("/api/v1/products", async (req, res) => {
+      try {
+        const body = req.body;
+        const result = await productsCollection.insertOne(body);
+        res.status(200).json({
+          success: true,
+          message: "all products retrieved successful",
+          data: result,
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
     //get all products
     app.get("/api/v1/products", async (req, res) => {
       const result = await productsCollection.find().toArray();
+      res.status(200).json({
+        success: true,
+        message: "all products retrieved successful",
+        data: result,
+      });
+    });
+
+    //get single products
+    app.get("/api/v1/products/:productId", async (req, res) => {
+      const productId = req.params.productId;
+
+      console.log(productId);
+
+      const result = await productsCollection.findOne({
+        _id: new ObjectId(productId),
+      });
       res.status(200).json({
         success: true,
         message: "all products retrieved successful",
@@ -123,22 +195,30 @@ async function run() {
         console.error(error);
       }
     });
+
     //edit products
-    app.delete("/api/v1/products/:id", async (req, res) => {
+    app.patch("/api/v1/products/:id", async (req, res) => {
       const id = req.params.id;
+      const body = req.body;
+      console.log(body);
       try {
-        const result = await productsCollection.deleteOne({
-          _id: new ObjectId(id),
-        });
-        if (result.deletedCount > 0) {
+        const query = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            data: req.body,
+          },
+        };
+        const result = await productsCollection.updateOne(query, updateDoc);
+        if (result.modifiedCount > 0) {
           res.status(200).json({
             success: true,
-            message: "Product deleted successfully",
+            message: "Product Updated Successfully",
+            data: req.body,
           });
         } else {
           res.status(404).json({
             success: false,
-            message: "Product not found",
+            message: "Product Not Found",
           });
         }
       } catch (error) {
@@ -152,7 +232,7 @@ async function run() {
 
       res.status(200).json({
         success: true,
-        message: "all categories retrieved successful",
+        message: "All Categories Retrieved Successful",
         data: result,
       });
     });
