@@ -29,6 +29,8 @@ async function run() {
     const collection = db.collection("users");
     const productsCollection = db.collection("products");
     const categoriesCollection = db.collection("categories");
+    const cartsCollection = db.collection("carts");
+    const reviewsCollection = db.collection("reviews");
 
     // User Registration
     app.post("/api/v1/register", async (req, res) => {
@@ -161,8 +163,6 @@ async function run() {
     app.get("/api/v1/products/:productId", async (req, res) => {
       const productId = req.params.productId;
 
-      console.log(productId);
-
       const result = await productsCollection.findOne({
         _id: new ObjectId(productId),
       });
@@ -200,7 +200,7 @@ async function run() {
     app.patch("/api/v1/products/:id", async (req, res) => {
       const id = req.params.id;
       const body = req.body;
-      console.log(body);
+      // console.log(body);
       try {
         const query = { _id: new ObjectId(id) };
         const updateDoc = {
@@ -235,6 +235,215 @@ async function run() {
         message: "All Categories Retrieved Successful",
         data: result,
       });
+    });
+
+    //============================
+    // products add to cart api
+
+    //add to cart
+    // app.post("/api/v1/carts", async (req, res) => {
+    //   try {
+    //     const body = req.body;
+
+    //     const result = await cartsCollection.insertOne(body);
+
+    //     res.status(200).json({
+    //       success: true,
+    //       message: "Products Added on Cart Successful",
+    //       data: result,
+    //     });
+    //   } catch (error) {
+    //     console.error(error);
+    //   }
+    // });
+
+    app.post("/api/v1/carts", async (req, res) => {
+      try {
+        const body = req.body;
+
+        // Check if the product already exists in the cart
+        const existingProduct = await cartsCollection.findOne({ id: body.id });
+
+        if (existingProduct) {
+          // Increase quantity of existing product in the cart
+          await cartsCollection.updateOne(
+            { id: body.id },
+            { $inc: { quantity: body.quantity || 1 } } // Increment quantity by the provided amount or 1 if not provided
+          );
+
+          res.status(200).json({
+            success: true,
+            message: "Product quantity updated in cart",
+          });
+        } else {
+          // If no quantity is provided, set it to 1
+          if (!body.quantity) {
+            body.quantity = 1;
+          }
+
+          // Insert new product in the cart
+          const result = await cartsCollection.insertOne(body);
+
+          res.status(200).json({
+            success: true,
+            message: "Product added to cart successfully",
+            data: result,
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({
+          success: false,
+          message: "Error adding product to cart",
+        });
+      }
+    });
+
+    // products cart get
+    app.get("/api/v1/carts", async (req, res) => {
+      try {
+        const result = await cartsCollection.find().toArray();
+        res.status(200).json({
+          success: true,
+          message: "Products Cart Retrieved Successful",
+          data: result,
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    //single products cart get
+    app.get("/api/v1/carts/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await cartsCollection.findOne({ _id: new ObjectId(id) });
+        res.status(200).json({
+          success: true,
+          message: "Single Products Cart Retrieved Successful",
+          data: result,
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    //delete single products cart
+    app.delete("/api/v1/carts/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await cartsCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        if (result?.deletedCount > 0) {
+          res.status(200).json({
+            success: true,
+            message: "Single Products Cart deleted Successful",
+            data: result,
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            message: "Single Products Cart deleted failed",
+            data: result,
+          });
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    //delete all products cart
+    app.delete("/api/v1/carts", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await cartsCollection.deleteMany();
+        if (result?.deletedCount > 0) {
+          res.status(200).json({
+            success: true,
+            message: "Products Cart deleted Successful",
+            data: result,
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            message: "Products Cart deleted failed",
+            data: result,
+          });
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    //=======================================
+    // product feedback api
+
+    app.post("/api/v1/reviews", async (req, res) => {
+      try {
+        const body = req.body;
+
+        const result = await reviewsCollection.insertOne(body);
+        if (result?.insertedId) {
+          res.status(200).json({
+            success: true,
+            message: "Customers Reviews Successful",
+            data: result,
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            message: "Customers Reviews failed",
+            data: result,
+          });
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    //get all reviews
+    app.get("/api/v1/reviews", async (req, res) => {
+      try {
+        const result = await reviewsCollection
+          .find()
+          .sort({ date: -1 })
+          .toArray();
+        if (result?.length) {
+          res.status(200).json({
+            success: true,
+            message: "Customers Reviews Retrieved Successful",
+            data: result,
+          });
+        } else {
+          res.status(404).json({
+            success: false,
+            message: "Customers Reviews Retrieved failed",
+            data: [],
+          });
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    //=====================================
+    // users api
+    app.get("/api/v1/users", async (req, res) => {
+      const result = await collection.find().toArray();
+      if (result?.length) {
+        res.status(200).json({
+          success: true,
+          message: "Users Retrieved Successful",
+          data: result,
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: "Users Retrieved failed",
+          data: [],
+        });
+      }
     });
 
     // ==============================================================
