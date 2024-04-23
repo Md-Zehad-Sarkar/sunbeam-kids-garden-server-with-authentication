@@ -279,9 +279,7 @@ async function run() {
           if (!body.quantity) {
             body.quantity = 1;
           }
-
           const result = await cartsCollection.insertOne(body);
-
           res.status(200).json({
             success: true,
             message: "Product added to cart successfully",
