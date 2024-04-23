@@ -31,6 +31,7 @@ async function run() {
     const categoriesCollection = db.collection("categories");
     const cartsCollection = db.collection("carts");
     const reviewsCollection = db.collection("reviews");
+    const ordersCollection = db.collection("orders");
 
     // User Registration
     app.post("/api/v1/register", async (req, res) => {
@@ -160,7 +161,7 @@ async function run() {
     });
 
     //get single products
-    app.get("/api/v1/products/:productId", async (req, res) => {
+    app.get("/api/v1/single-products/:productId", async (req, res) => {
       const productId = req.params.productId;
 
       const result = await productsCollection.findOne({
@@ -196,24 +197,24 @@ async function run() {
       }
     });
 
-    //edit products
-    app.patch("/api/v1/products/:id", async (req, res) => {
+    //update single products
+    app.patch("/api/v1/update-products/:id", async (req, res) => {
       const id = req.params.id;
       const body = req.body;
-      // console.log(body);
+
       try {
         const query = { _id: new ObjectId(id) };
         const updateDoc = {
-          $set: {
-            data: req.body,
-          },
+          $set: body,
         };
-        const result = await productsCollection.updateOne(query, updateDoc);
+        const result = await productsCollection.updateOne(query, updateDoc, {
+          new: true,
+        });
         if (result.modifiedCount > 0) {
           res.status(200).json({
             success: true,
             message: "Product Updated Successfully",
-            data: req.body,
+            data: result,
           });
         } else {
           res.status(404).json({
@@ -265,10 +266,9 @@ async function run() {
         const existingProduct = await cartsCollection.findOne({ id: body.id });
 
         if (existingProduct) {
-          // Increase quantity of existing product in the cart
           await cartsCollection.updateOne(
             { id: body.id },
-            { $inc: { quantity: body.quantity || 1 } } // Increment quantity by the provided amount or 1 if not provided
+            { $inc: { quantity: body.quantity || 1 } }
           );
 
           res.status(200).json({
@@ -276,12 +276,10 @@ async function run() {
             message: "Product quantity updated in cart",
           });
         } else {
-          // If no quantity is provided, set it to 1
           if (!body.quantity) {
             body.quantity = 1;
           }
 
-          // Insert new product in the cart
           const result = await cartsCollection.insertOne(body);
 
           res.status(200).json({
@@ -292,10 +290,6 @@ async function run() {
         }
       } catch (error) {
         console.error(error);
-        res.status(500).json({
-          success: false,
-          message: "Error adding product to cart",
-        });
       }
     });
 
@@ -342,7 +336,7 @@ async function run() {
             data: result,
           });
         } else {
-          res.status(500).json({
+          res.status(400).json({
             success: false,
             message: "Single Products Cart deleted failed",
             data: result,
@@ -354,10 +348,11 @@ async function run() {
     });
 
     //delete all products cart
-    app.delete("/api/v1/carts", async (req, res) => {
+    app.delete("/api/v1/delete-carts/:email", async (req, res) => {
       try {
-        const id = req.params.id;
-        const result = await cartsCollection.deleteMany();
+        const email = req.params.email;
+
+        const result = await cartsCollection.deleteMany({ email: email });
         if (result?.deletedCount > 0) {
           res.status(200).json({
             success: true,
@@ -365,10 +360,9 @@ async function run() {
             data: result,
           });
         } else {
-          res.status(500).json({
+          res.status(404).json({
             success: false,
             message: "Products Cart deleted failed",
-            data: result,
           });
         }
       } catch (error) {
@@ -391,7 +385,7 @@ async function run() {
             data: result,
           });
         } else {
-          res.status(500).json({
+          res.status(400).json({
             success: false,
             message: "Customers Reviews failed",
             data: result,
@@ -446,7 +440,93 @@ async function run() {
       }
     });
 
-    // ==============================================================
+    //=============================================
+    // check out api
+    app.post("/api/v1/checkout", async (req, res) => {
+      try {
+        const body = req.body;
+
+        const result = await ordersCollection.insertOne(body);
+        if (result?.insertedId) {
+          res.status(200).json({
+            success: true,
+            message: "Order/Checkout Successful",
+            data: result,
+          });
+        } else {
+          res.status(400).json({
+            success: false,
+            message: "Order/Checkout Failed",
+            data: result,
+          });
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    });
+    //======================================
+    //users my orders api
+    app.get("/api/v1/my-orders", async (req, res) => {
+      const result = await ordersCollection.find().toArray();
+
+      if (result?.length) {
+        res.status(200).json({
+          success: true,
+          message: "Users orders Retrieved Successful",
+          data: result,
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: "Users orders Retrieved failed",
+          data: [],
+        });
+      }
+    });
+
+    //users  orders api
+    app.get("/api/v1/admin-orders", async (req, res) => {
+      const result = await ordersCollection.find().toArray();
+
+      if (result?.length) {
+        res.status(200).json({
+          success: true,
+          message: "All Orders Retrieved Successful",
+          data: result,
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: "All Orders Retrieved failed",
+          data: [],
+        });
+      }
+    });
+
+    //admin  orders status update api
+    app.patch("/api/v1/update-status-orders/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateDoc = { $set: { status: "delivered" } };
+      const result = await ordersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        updateDoc
+      );
+
+      if (result?.modifiedCount > 0) {
+        res.status(200).json({
+          success: true,
+          message: "Orders Delivered Status Update Successful",
+          data: result,
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: "All Orders Retrieved failed",
+          data: [],
+        });
+      }
+    });
+    //==============================================================
 
     // Start the server
     app.listen(port, () => {
