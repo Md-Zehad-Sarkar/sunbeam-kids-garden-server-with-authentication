@@ -246,23 +246,6 @@ async function run() {
     //============================
     // products add to cart api
 
-    //add to cart
-    // app.post("/api/v1/carts", async (req, res) => {
-    //   try {
-    //     const body = req.body;
-
-    //     const result = await cartsCollection.insertOne(body);
-
-    //     res.status(200).json({
-    //       success: true,
-    //       message: "Products Added on Cart Successful",
-    //       data: result,
-    //     });
-    //   } catch (error) {
-    //     console.error(error);
-    //   }
-    // });
-
     app.post("/api/v1/carts", async (req, res) => {
       try {
         const body = req.body;
@@ -529,8 +512,9 @@ async function run() {
         });
       }
     });
-    //==============================================================
 
+
+    //==============================================================
     // Start the server
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);
