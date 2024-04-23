@@ -11,7 +11,7 @@ const port = process.env.PORT || 5000;
 // Middleware
 app.use(
   cors({
-    origin: "https://sunbeam-kids-garden-client-final.vercel.app/",
+    origin: "https://sunbeam-kids-garden-client-final.vercel.app",
     credentials: true,
   })
 );
